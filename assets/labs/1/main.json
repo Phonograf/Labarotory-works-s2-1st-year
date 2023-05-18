@@ -1,0 +1,26 @@
+{
+    "number":1,
+    "name":"test",
+    "modules":[{
+        "module":1,
+        "mname":"easy",
+        "tasks":[
+        {
+            "tnumber":1,
+            "taskdescription":"Выполнить трассировку подпрограммы для начальных значений a = 2, n = 11. Изобразить «ящики». Определить глубину рекурсии. ",
+            "path":"test.js",
+            "status":1,
+            "comment":"Это просто тестовое наполнение"
+        },
+        {
+            "tnumber":2,
+            "taskdescription":"b",
+            "path":"tt2.js",
+            "status":1,
+            "comment":""
+        }
+        ]
+        }
+    ]
+    
+}
