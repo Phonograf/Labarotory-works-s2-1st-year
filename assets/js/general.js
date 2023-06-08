@@ -2,6 +2,11 @@ let task = document.getElementById("number");
 let lab = document.getElementById("lab");
 let launch = document.getElementById("launch");
 let stackJS = "";
+let clear = document.getElementById("clear");
+let feedback = document.getElementById("feedback");
+let link;
+let debugW;
+let safemode;
 
 window.onload = function() { 
     //alert('Страница загружена');
@@ -52,9 +57,14 @@ async function loadtask(params) {
     console.log(`Loading ${lab.value} - ${task.value}`);
     async function httpGet(theUrl) {
         var xmlHttp = new XMLHttpRequest();
-        xmlHttp.open("GET", theUrl, false); // false for synchronous request
-        xmlHttp.send(null);
-        return JSON.parse(xmlHttp.responseText);
+        try {
+            xmlHttp.open("GET", theUrl, false); // false for synchronous request
+            xmlHttp.send(null); 
+            return JSON.parse(xmlHttp.responseText);
+        } catch (error) {
+            console.log("error: "+ theUrl);
+            return "error"
+        }             
     }
     async function httpGetJS(theUrl) {
         var xmlHttp = new XMLHttpRequest();
@@ -68,14 +78,25 @@ async function loadtask(params) {
     let labreestr = await httpGet(`assets/labs/${reestr.labs[lab.value-1].path}`);
     let taska = labreestr.modules[task.value.split("-")[0]-1].tasks[task.value.split("-")[1]-1];
     //ссылки
-    let link = `assets/labs/${reestr.labs[lab.value-1].pathshort}/${taska.path}`;
+    link = `assets/labs/${reestr.labs[lab.value-1].pathshort}/${taska.path}`;
     document.getElementById("aa1").href = link;
     document.getElementById("aa2").href = link;
     //metainfo
-    document.getElementById("metadata").value = `Лабораторная # ${lab.value} \n Модуль ${task.value.split("-")[0]} \n Задача ${task.value.split("-")[1]} \r\n Описание \n ${taska.taskdescription} \r\n Комментарий ${taska.status} -- ${taska.comment}`
-    document.getElementById("task").innerHTML = taska.taskdescription + "<br>"+"<hr>" + taska.comment;
+    document.getElementById("metadata").value = `Лабораторная # ${lab.value} \n Модуль ${task.value.split("-")[0]} \n Задача ${task.value.split("-")[1]} \r\n Описание \n ${taska.taskdescription} \r\n Статус ${taska.status} \r\n Комментарий  -- ${taska.comment}`
+    if (taska.gfx == "") {
+        document.getElementById("task").innerHTML = taska.taskdescription + "<br>"+"<hr>" + taska.comment;
+    }else{
+        document.getElementById("task").innerHTML = taska.taskdescription + `<br><img src="assets/labs/${reestr.labs[lab.value-1].pathshort}/${taska.gfx}" style="max-height:100%; max-width:100%"><br>`+"<hr>" + taska.comment;
+    }
+   if (taska.safemode) {
+    safemode = taska.safemode;
+   }else{
+    safemode = 2000;
+   }
+    
     //выгрузка скрипта
     stackJS = await httpGetJS(link);
+    stackJS = stackJS.substring(344);
     document.getElementById("code").innerHTML = stackJS;
 
     hljs.highlightAll();
@@ -108,9 +129,32 @@ lab.onclick = async function () {
 }
 
 launch.onclick = async function () {
+    window.f1 = "undefined";
     var s = document.createElement('script');
     s.type = 'text/javascript';
-    var code = stackJS;
+    let code = `async function f1(){ 
+            var worker = new Worker("${link}");
+            var logger = document.getElementById('log');
+            worker.onmessage = function(e) {
+                if(String(e.data).indexOf("|prompt|")==0){
+                    let tempera = prompt(e.data.split("|prompt|")[1],"2");
+                    worker.postMessage([tempera]);
+                }else{
+                    logger.value += e.data + "\\n";
+                } 
+              }
+
+            setTimeout(function () {
+      try {
+        throw new Error('Timeout!');
+      } catch (e) {
+        console.error(e);
+        worker.terminate();
+      }
+    }, ${safemode})
+        worker.postMessage("");                 
+    }
+    f1();`;
     try {
       s.appendChild(document.createTextNode(code));
       document.body.appendChild(s);
@@ -118,4 +162,12 @@ launch.onclick = async function () {
       s.text = code;
       document.body.appendChild(s);
     }
+}
+
+clear.onclick = async function () {
+    document.getElementById('log').value = "";
+}
+
+feedback.onclick = async function () {
+    window.open(`https://github.com/Phonograf/Labarotory-works-s2-1st-year/issues/new?labels=feedback&title=[lab ${lab.value} : ${task.value}]+New+feedback&body=put+feedback+here+%0A`)
 }
